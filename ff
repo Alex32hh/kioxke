@@ -1,0 +1,26 @@
+ ViewModelProvider<MyViewModel>.withConsumer(
+               viewModel: MyViewModel(widget.bookUrl,widget.bookUrl.substring(widget.bookUrl.lastIndexOf("/") + 1)),
+              builder: (context, model, child) => Stack(
+                alignment: Alignment.centerRight,
+                children: <Widget>[
+              Align(
+                alignment: Alignment.centerRight,
+                child: FlatButton(
+                padding: EdgeInsets.all(0),
+                child:isOndownload == true?CircularPercentIndicator( progressColor:Colors.amber,radius: 30, percent:model.downloadProgress==null?0:model.downloadProgress, ):Container(
+                  alignment: Alignment.center,
+                  width: 80,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isDownloaded==false?Colors.amber:Colors.green,
+                    borderRadius: BorderRadius.all(Radius.circular(5))
+                  ),
+                  child:  Text(isDownloaded==true?"Abrir":"Comprar",style: TextStyle(color:Colors.white,fontSize: 15))
+                ),
+                onPressed: () async {
+                  if(isDownloaded == false){
+                    model.startDownloading();
+                    setState(() {
+                        isOndownload = true;
+                    });
+                  }

@@ -1,20 +1,105 @@
+import 'dart:convert';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter/material.dart';
+import 'package:kioxke/views/mainPage.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
-  final Function callback;
-  Login(this.callback);
-
   @override
   _LoginState createState() => _LoginState();
 }
 
 class _LoginState extends State<Login> {
-     
+   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+   Future<String> _email,_nome;
+
     final _formKey = GlobalKey<FormState>();
+    final _senhaController = TextEditingController();
+    final _emailController = TextEditingController();
+
+    final _scafoldkey = GlobalKey<ScaffoldState>();
+    bool isloading = false;
+
+    Future<void> _login() async{
+     if(_senhaController.text == "" || _emailController.text == ""){
+         falha();
+       return;
+     }
+     final response = await http.post('https://kioxke.000webhostapp.com/api/login.php',
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(<String, String>{
+       'use_email': _emailController.text,
+       'use_senha': _senhaController.text,
+    }),
+
+  );
+
+    var encodeFirst = json.encode(response.body);
+    var data = json.decode(encodeFirst);
+
+    if(data.toString().replaceAll('"', '') == 'erro')
+    {
+      falha();
+    }else{
+      
+      print(data.toString());
+
+        if(data == "erro"){
+           falha();
+         return;
+        }
+      if(!data.toString().contains(','))
+      return;
+      sucesso(data.toString().split(',')[0],data.toString().split(',')[1]);   
+    }
+  }
+   
+    Future<void> _checkSession(String nome,String email) async {
+       final SharedPreferences prefs = await _prefs;
+    //final int counter = (prefs.getInt('counter') ?? 0) + 1;
+      if(prefs.getString("email") != null){
+         print(prefs.getString("email")+prefs.getString("nome"));
+         Navigator.pushAndRemoveUntil(context,MaterialPageRoute(builder: (context) =>  MainPage(nome,email)),(Route<dynamic> route) => false);
+      }
+    }
+
+    Future<void> _saveSession(String nome) async {
+    final SharedPreferences prefs = await _prefs;
+    //final int counter = (prefs.getInt('counter') ?? 0) + 1;
+
+    setState(() {
+      _email = prefs.setString("email", _emailController.text).then((bool success) {
+        return  _email;
+      });
+        _nome = prefs.setString("nome", nome).then((bool success) {
+        return  _nome;
+      });
+    });
+  }
+
+@override
+  void initState() {
+    super.initState();
+      _email = _prefs.then((SharedPreferences prefs) {
+      return (prefs.getString('email'));
+    });
+      _nome = _prefs.then((SharedPreferences prefs) {
+      return (prefs.getString('nome'));
+    });
+
+     _checkSession(_nome.toString(),_email.toString());
+  }
+
 
   @override
 Widget build(BuildContext context) {
-  return Container(
+  return Scaffold( 
+    key: _scafoldkey,
+    body:SingleChildScrollView(
+          child:Container(
           width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height,
           decoration: BoxDecoration(
@@ -24,9 +109,8 @@ Widget build(BuildContext context) {
             children: [
 
           Container(
-              padding: EdgeInsets.only(top:40),
              width: MediaQuery.of(context).size.width,
-             height: MediaQuery.of(context).size.height /2,
+             height: MediaQuery.of(context).size.height /1.9,
              child: Column(
               children: [
                logo(),
@@ -37,7 +121,7 @@ Widget build(BuildContext context) {
 
             Container(
              width: MediaQuery.of(context).size.width,
-             height: MediaQuery.of(context).size.height /2,
+             height: MediaQuery.of(context).size.height /2.4,
              
              child: Column(
                children: [
@@ -45,10 +129,10 @@ Widget build(BuildContext context) {
                  key: _formKey,
                  child: Column(
                  children: <Widget>[
-                     inputlista("Nome de Utilizador"),
-                     inputlista("Palavra-Passe"),
-                     loginButton("Entrar",Color.fromRGBO(253, 172, 66, 1),widget.callback),
-                     loginButton("Nao tem Conta? Crie uma aqui",Colors.transparent,widget.callback)
+                     inputlista("Nome de Utilizador",false),
+                     inputlista("Palavra-Passe",true),
+                     loginButton("Iniciar Sessao",Color.fromRGBO(253, 172, 66, 1),true),
+                     loginButton("Não tem Conta? Crie uma aqui",Colors.transparent,false)
                    ]
                     )
                  )
@@ -57,28 +141,35 @@ Widget build(BuildContext context) {
             )
             ], 
           ),
-        );
+        )
+  )
+);
 }
 
-Widget loginButton(String labelText,Color cor,Function callback){
-  return Padding(
-    padding: EdgeInsets.only(top: 10,right: 10, left: 10),
-    child:FlatButton(onPressed:(){
-      callback(1,"");
+Widget loginButton(String labelText,Color cor,bool isSubmited){
+  return SizedBox(
+          width: MediaQuery.of(context).size.width-20, //Full width
+          height: 60,
+    child:FlatButton(
+       color: cor,
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      onPressed:() async{
+     isSubmited?
+      _login(): null;
+      //  Navigator.pushAndRemoveUntil(context,MaterialPageRoute(builder: (context) =>  MainPage()),(Route<dynamic> route) => false);
+
+       FocusScopeNode currentFocus = FocusScope.of(context);
+       if (!currentFocus.hasPrimaryFocus) {
+          currentFocus.unfocus();
+        }
+    setState(() {
+       isloading = true;
+    });
     },
    padding:EdgeInsets.all(0.0),
-   child: Container(
-     alignment: Alignment.center,
-      width: MediaQuery.of(context).size.width -10,
-      height:60.0,
-      decoration: BoxDecoration(
-        color: cor,
-
-        borderRadius: BorderRadius.all(Radius.circular(5))
-        // Color.fromRGBO(253, 172, 66, 1)
-      ),
-      child: Text("$labelText",style: TextStyle(color:Colors.white, fontWeight: FontWeight.bold),),
-   )
+   child:isSubmited? isloading? SpinKitRipple(color: Colors.white,size: 60.0,):
+   Text("$labelText",style: TextStyle(color:Colors.white, fontSize: 13, fontWeight: FontWeight.bold),):
+   Text("$labelText",style: TextStyle(color:Colors.white, fontSize: 13, fontWeight: FontWeight.bold),),
  )
    );
 }
@@ -108,14 +199,15 @@ Widget textLogo(){
   );
 }
 
-Widget inputlista(String label){
+Widget inputlista(String label,bool isObcure){
   return Padding(
     padding: EdgeInsets.only(left: 10,right: 10,bottom: 10,top: 10),
     child:TextField(
-    style: TextStyle(fontSize: 12.0, color: Colors.white),
+    controller: isObcure?_senhaController:_emailController,
+    style: TextStyle(fontSize: 15.0, color: Colors.white),
     textAlign: TextAlign.center,
+    obscureText: isObcure,
     decoration: InputDecoration(
-
       hintText: '$label',
       hintStyle: TextStyle(color:Colors.white,fontWeight: FontWeight.bold),
       fillColor: Color.fromRGBO(175, 175, 175, 1),
@@ -132,4 +224,35 @@ Widget inputlista(String label){
 
 }
 
+     
+    void sucesso(String nome,String email){
+      _scafoldkey.currentState.showSnackBar(
+        SnackBar( content: Text("Login feito com sucesso!"),
+        backgroundColor: Colors.green, duration: Duration(seconds: 3),)
+      );
+      Future.delayed(Duration(seconds: 2)).then((_){
+          setState(() {
+            isloading = false;
+            });
+          _saveSession(nome);
+          Navigator.pushAndRemoveUntil(context,MaterialPageRoute(builder: (context) =>  MainPage(nome,email)),(Route<dynamic> route) => false);
+      });
+   
+      
+    }
+
+    void falha(){
+        _scafoldkey.currentState.showSnackBar(
+        SnackBar( content: Text("Dados invalidos ,Porfavor insere os dados correctamente"),
+           backgroundColor: Colors.redAccent, duration: Duration(seconds: 4),)
+      );
+       Future.delayed(Duration(seconds: 2)).then((_){
+         setState(() {
+            isloading = false;
+         });
+      });
+    
+    }
+
 }
+

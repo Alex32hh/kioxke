@@ -1,13 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:kioxke/views/tabs.dart';
+import 'drawer.dart';
 
 // final Function(int) gotoP = (a){};
+class MainPage extends StatefulWidget {
 
-Widget mainPage(BuildContext context, Function callbak) {
-  return Scaffold(
+  @override
+  _MainPageState createState() => _MainPageState();
+  final String userName ;
+  final String userEmail;
+  MainPage(this.userName,this.userEmail);
+}
+
+class _MainPageState extends State<MainPage> {
+   void initState() {
+   SystemChannels.textInput.invokeMethod('TextInput.hide');
+   super.initState();
+   }
+   
+  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         elevation: 0.0,
+        leading: SizedBox(),
         backgroundColor: Color.fromRGBO(253, 172, 66, 1),
         actions: [
+
           Container(
             width: MediaQuery.of(context).size.width,
             height: 200,
@@ -15,44 +38,41 @@ Widget mainPage(BuildContext context, Function callbak) {
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  IconButton(icon: Icon(Icons.sort), onPressed: () {}),
-                  Text(
-                    "Kioxke",
-                    style: TextStyle(fontSize: 20),
-                  ),
+                  IconButton(icon: Icon(Icons.sort), onPressed: () => _scaffoldKey.currentState.openDrawer(),),
+                  Text(("Kioxke").toUpperCase(),style: TextStyle(fontSize: 20),),
                   IconButton(icon: Icon(Icons.more_vert), onPressed: () {}),
                 ]),
           )
+
         ],
       ),
       body: Container(
-        padding: EdgeInsets.only(top: 80,left:15, right:15),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width /19),
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+        child: ListView(
             children: <Widget>[
-              buttonBox("https://i.pinimg.com/originals/0c/a9/fb/0ca9fba306bfb65f98e40802e95f062a.jpg","Jornais",context,callbak),
-              buttonBox(
-                  "https://image.isu.pub/120430172719-9dd38fe88074479cb86e0446b400a3bb/jpg/page_1_thumb_large.jpg",
-                  "Revistas",
-                  context,callbak),
-                  
-              buttonBox(
-                  "https://http2.mlstatic.com/kit-livros-harry-potter-capa-dura-2-ao-8-lacrados-D_NQ_NP_871790-MLB27828435642_072018-F.jpg",
-                  "Livros",
-                  context,callbak)
+              buttonBox("images/jornal.jpg","Jornais",context,()=>   Navigator.push(context,MaterialPageRoute(builder: (context) => TabsPage("Jornais")))),
+              buttonBox("images/revistas.jpg","Revistas",context,()=>   Navigator.push(context,MaterialPageRoute(builder: (context) => TabsPage("Revistas")))),
+              buttonBox("images/livros.jpg","Livros",context,()=>   Navigator.push(context,MaterialPageRoute(builder: (context) => TabsPage("Livros")))),
+              buttonBox("images/bd.jpg","Banda Desenhada",context,()=>   Navigator.push(context,MaterialPageRoute(builder: (context) => TabsPage("Banda Desenhada")))),
             ]),
-      ));
+      )
+      ,
+      drawer: DrawerPg(widget.userName,widget.userEmail)
+
+      );
+     
+  }
+  
 }
 
 
 
-
-Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(int, String) callbak) {
+Widget buttonBox(String urlink, String textTitle, BuildContext context,Function() callbak) {
   return GestureDetector(
       onTap: () {
-        callbak(2, "$textTitle");
+        callbak();
       },
       child: Padding(
           padding: EdgeInsets.only(bottom: 20),
@@ -61,8 +81,9 @@ Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(
                 alignment: Alignment.centerRight,
                 child: Container(
                   width: MediaQuery.of(context).size.width / 1.3,
-                  height: 180,
-                  alignment: Alignment(0.3, 0),
+                  height: 160,
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.only(left:MediaQuery.of(context).size.width /3),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.all(Radius.circular(5)),
@@ -78,7 +99,7 @@ Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(
                   child: Text(
                     textTitle,
                     style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Color.fromRGBO(253, 172, 66, 1)),
                   ),
@@ -88,12 +109,13 @@ Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(
                 child: Padding(
                   padding: EdgeInsets.only(top: 15),
                   child: Container(
-                    width: 150,
-                    height: 150,
+                    width: 130,
+                    height: 130,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(5)),
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
                       image: DecorationImage(
-                          image: NetworkImage(urlink), fit: BoxFit.fill),
+                          image:AssetImage(urlink), fit: BoxFit.cover,alignment: Alignment.topCenter),
                     ),
                   ),
                 ))

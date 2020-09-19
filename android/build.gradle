@@ -29,22 +29,3 @@ subprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
-   buildTypes {
-
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled true
-            useProguard true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-
-            ndk {
-                abiFilters 'armeabi-v7a'
-            }
-        }
-
-        debug {
-            minifyEnabled false
-            useProguard false
-        }
-    }

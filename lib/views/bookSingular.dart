@@ -1,55 +1,84 @@
+
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:epub_viewer/epub_viewer.dart';
 import 'package:flutter/material.dart';
-import 'package:kioxke/views/reader.dart';
+import 'package:kioxke/backend/path.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:provider_architecture/viewmodel_provider.dart';
+import 'package:provider_architecture/provider_architecture.dart';
+// import 'package:universal_html/html.dart';
 
 class SingleBook extends StatefulWidget {
-
    final String nameBook;
    final String imageBook;
    final String discriptBook;
    final String priceBook;
-   final String tituloAnterior;
-   final Function goback;
+   final String autorBook;
+   final String likes;
+   final String bookUrl;
 
-
-  SingleBook(this.nameBook,this.imageBook,this.discriptBook,this.priceBook,this.goback,this.tituloAnterior);
+  SingleBook(this.nameBook,this.imageBook,this.discriptBook,this.priceBook,this.autorBook,this.likes,this.bookUrl);
   // SingleBook({Key key}) : super(key: key);
 
   @override
   _SingleBookState createState() => _SingleBookState();
 }
 
+  bool isDownloaded = false;
+  bool isOndownload = false;
+  String directorio,nameBook;
+
 class _SingleBookState extends State<SingleBook> {
 
   String pathPDF = "";
 
+  Future<bool> getFileNameWithExtension()async{
+      //return file with file extension
+      final filename = widget.bookUrl.substring(widget.bookUrl.lastIndexOf("/") + 1);
+      var dir = await getApplicationDocumentsDirectory();
+      File file = File("${dir.path}/$filename");
+      if(await file.exists())
+        return true;
+      else
+        return false;
+  }
+
+  Future<String> getFile()async{
+      final filename = widget.bookUrl.substring(widget.bookUrl.lastIndexOf("/") + 1);
+      var dir = await getApplicationDocumentsDirectory();
+      String file = "${dir.path}/$filename";
+      return file.toString();
+  }
+
+
+
+   Timer timer;
+
   @override
   void initState() {
     super.initState();
-    createFileOfPdfUrl().then((f) {
-      setState(() {
-        pathPDF = f.path;
-        print(pathPDF);
-      });
+
+    getFile().then((value) {
+      directorio = value;
+      print(directorio);
     });
+
+    timer = Timer.periodic(Duration(milliseconds: 50), (Timer t) =>  getFileNameWithExtension().then((value){
+      setState(() {
+        isDownloaded =  value;    
+        if(isDownloaded==true)       
+           isOndownload = false;
+      });
+    }));
   }
 
-  Future<File> createFileOfPdfUrl() async {
-    final url = "https://www.lendo.org/wp-content/uploads/2008/04/o-uraguai.pdf";
-    final filename = url.substring(url.lastIndexOf("/") + 1);
-    var request = await HttpClient().getUrl(Uri.parse(url));
-    var response = await request.close();
-    var bytes = await consolidateHttpClientResponseBytes(response);
-    String dir = (await getApplicationDocumentsDirectory()).path;
-    File file = new File('$dir/$filename');
-    await file.writeAsBytes(bytes);
-    return file;
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -65,9 +94,10 @@ class _SingleBookState extends State<SingleBook> {
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  IconButton(icon: Icon(Icons.arrow_back_ios), onPressed: () {
-                   widget.goback(2,widget.tituloAnterior);
-                  }),
+               Container(
+                 width:30,
+                 height:30,
+               ),
                 Flexible(
                 child: RichText(
                   overflow: TextOverflow.ellipsis,
@@ -91,22 +121,22 @@ class _SingleBookState extends State<SingleBook> {
          mainAxisAlignment: MainAxisAlignment.start,
         children: [
            boxFirst(context),
-           titulo(context,"Descricao"),
+           titulo(context,"Descrição"),
            boxDescricao(context),
-           titulo(context,"Comentarios"),
+           titulo(context,"Comentários"),
 
           buttonBox(
-                  "https://http2.mlstatic.com/kit-livros-harry-potter-capa-dura-2-ao-8-lacrados-D_NQ_NP_871790-MLB27828435642_072018-F.jpg",
+                  "https://i.pinimg.com/originals/34/13/d7/3413d7b3b1ab1c3e841f71395809d789.jpg",
                   "Livros",
-                  context,null),
+                  context,null,"Um dos melhores, se não o melhor livro 'técnico' que já tive a oportunidade de ler.","Filipe Aparecido"),
           buttonBox(
-                  "https://http2.mlstatic.com/kit-livros-harry-potter-capa-dura-2-ao-8-lacrados-D_NQ_NP_871790-MLB27828435642_072018-F.jpg",
+                  "https://i.pinimg.com/280x280_RS/62/c9/df/62c9dfc2bb087e1c53e2513ec6ce443b.jpg",
                   "Livros",
-                  context,null),
+                  context,null,"Linguagem super acessível. Explicado de forma prática e fácil de entender.","José Monkundua"),
           buttonBox(
-                  "https://http2.mlstatic.com/kit-livros-harry-potter-capa-dura-2-ao-8-lacrados-D_NQ_NP_871790-MLB27828435642_072018-F.jpg",
+                  "https://cdn-sites-images.46graus.com/files/photos/ef6b6166/29b69b72-67b9-4ea8-8347-227d5900e805/carla-e-felipe-288-768x510.jpg",
                   "Livros",
-                  context,null),
+                  context,null,"Excelente! Parabéns! Esse livro não só me ensinou um tema que sempre tive preguiça de abordar, mas me deu também uma excelente aula de didática na informática.","Lucas Amaral"),
           
         ],
       ),
@@ -117,28 +147,36 @@ class _SingleBookState extends State<SingleBook> {
 
 
 Widget boxFirst(BuildContext context){
-   return Container(
+   return   Flexible(
+      flex: 3,
+      fit: FlexFit.loose,
+     child:Container(
      width: MediaQuery.of(context).size.width-10,
      height: 200,
      child: Row(
        children: [
+
          Container(
             width:MediaQuery.of(context).size.width /3,
             height: 200,
             decoration: BoxDecoration(
-              color:Colors.amber,
+              color:Colors.grey[200],
               image: DecorationImage(image: NetworkImage(widget.imageBook),fit:BoxFit.fill),
               borderRadius: BorderRadius.all(Radius.circular(10))
             ),
          ),
-         
+           Flexible(
+              flex: 3,
+              child:
            Container(
             width:MediaQuery.of(context).size.width /1.7,
-            height: 200,
+            height: 300,
             child: Column(
               children: [
 
-                Container(
+             Flexible(
+              flex: 3,
+              child:Container(
                   width:MediaQuery.of(context).size.width /1.6,
                   height: 45,
                   padding: EdgeInsets.all(15),
@@ -150,20 +188,20 @@ Widget boxFirst(BuildContext context){
                         style: TextStyle(color: Colors.grey,fontSize: 15,fontWeight: FontWeight.bold),
                         text: widget.nameBook),
                   ),
-                ),
-                ),
+                )
+              )),
 
                  Container(
                   width:MediaQuery.of(context).size.width /1.6,
                   height: 20,
-                   alignment: Alignment(-0.7,0),
-                  child: Text("Edições de Novembro"),
+                   alignment: Alignment(-0.8,0),
+                  child: Text(widget.autorBook),
                 ),
 
                  Container(
                   width:MediaQuery.of(context).size.width /1.6,
                   height: 40,
-                   alignment: Alignment(-0.80,0),
+                   alignment: Alignment(-0.76,0),
                   child: Text(widget.priceBook+"AOA",style: TextStyle(color:Colors.amber,fontSize: 20),),
                 ),
 
@@ -187,7 +225,7 @@ Widget boxFirst(BuildContext context){
                            ),
                            Container(
                              padding: EdgeInsets.only(left:0),
-                             child: Text("200")
+                             child: Text("0")
                            )
                           ],
                          ),
@@ -206,7 +244,7 @@ Widget boxFirst(BuildContext context){
                            ),
                            Container(
                              padding: EdgeInsets.only(left:0),
-                             child: Text("500")
+                             child: Text(widget.likes)
                            )
                           ],
                          ),
@@ -215,66 +253,107 @@ Widget boxFirst(BuildContext context){
                     ],
                   ),
                 ),
-
-
-                Padding(padding: EdgeInsets.only(left:110),
-                child: FlatButton(
-                onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PDFScreen(pathPDF, widget.nameBook)),
-                ), 
-                child: Container(
-                  width:MediaQuery.of(context).size.width /4,
+                Container(
+                  height: 50,
+                  child: ViewModelProvider<MyViewModel>.withConsumer(
+               viewModel: MyViewModel(widget.bookUrl,widget.bookUrl.substring(widget.bookUrl.lastIndexOf("/") + 1)),
+              builder: (context, model, child) => Stack(
+                alignment: Alignment.centerRight,
+                children: <Widget>[
+                                  Container(
+                  alignment: Alignment.center,
+                  width: 80,
                   height: 40,
-                   alignment: Alignment(0,0),
+                  decoration: BoxDecoration(
+                    color: isDownloaded==false?Colors.amber:Colors.green,
+                    borderRadius: BorderRadius.all(Radius.circular(5))
+                  ),
+                  child:  Text("Adicionar +",style: TextStyle(color:Colors.white,fontSize: 15))
+                ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FlatButton(
+                padding: EdgeInsets.all(0),
+                child:isOndownload == true?CircularPercentIndicator( progressColor:Colors.amber,radius: 40, percent:model.downloadProgress==null?0:model.downloadProgress, ):
+                Container(
+                  alignment: Alignment.center,
+                  width: 80,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isDownloaded==false?Colors.amber:Colors.green,
+                    borderRadius: BorderRadius.all(Radius.circular(5))
+                  ),
+                  child:  Text(isDownloaded==true?"Ler":"Comprar",style: TextStyle(color:Colors.white,fontSize: 15))
+                ),
+                onPressed: () async {
+                  if(isDownloaded == false){
+                    model.startDownloading();
+                    setState(() {
+                        isOndownload = true;
+                    });
+                  }
+                  else{
+                    // Navigator.push(context,MaterialPageRoute(builder: (context) => PDFScreen(directorio,fileName)));
+
+                    
+                  //   EpubViewer.setConfig(
+                  //     themeColor: Theme.of(context).primaryColor,
+                  //     identifier: "iosBook",
+                  //     scrollDirection: EpubScrollDirection.VERTICAL,
+                  //     allowSharing: false,
+                  //     enableTts: true,
+                  //   );
+                    
+                  //  EpubViewer.open(
+                  //   directorio,
+                  //    lastLocation: EpubLocator.fromJson({
+                  //      "bookId": "2239",
+                  //      "href": "/OEBPS/ch06.xhtml",
+                  //      "created": 1539934158390,
+                  //      "locations": {
+                  //        "cfi": "epubcfi(/0!/4/4[simple_book]/2/2/6)"
+                  //      }
+                  //    }),
+                  //  );
+
+                  }
                  
-                   decoration: BoxDecoration(
-                     border: Border(
-                      top: BorderSide(width: 2.0, color: Colors.amber),
-                      left: BorderSide(width: 2.0, color: Colors.amber),
-                      right: BorderSide(width: 2.0, color: Colors.amber),
-                      bottom: BorderSide(width: 2.0, color: Colors.amber),
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                    color: Colors.amber
-                   ),
-                  child: Text("Abrir",style: TextStyle(color:Colors.black,fontSize: 15),),
-                ),)
+                },
+              ),
+          ),
+
+        ],
+      ),
+    )
                 )
-
-
+                
               ],
             ),
          ),
-
-
-
-       ],
+        )],
      ),
-   );
+   ));
  }
 
-Widget titulo(BuildContext context,String Titulo){
+Widget titulo(BuildContext context,String titulo){
   return Container(
    width: MediaQuery.of(context).size.width,
    height: 40,
    alignment: Alignment(-0.98,0),
-   child: Text(Titulo,style: TextStyle(fontWeight: FontWeight.bold),),
+   child: Text(titulo,style: TextStyle(fontWeight: FontWeight.bold),),
   );
 } 
 
 Widget boxDescricao(BuildContext context){
    return Container(
      width: MediaQuery.of(context).size.width-10,
-     height: 190,
+     height: 100,
      padding: EdgeInsets.only(left:5),
-     child: Text("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.")
+     child: Text(widget.discriptBook,style: TextStyle(),)
    );
 }
 
-
-
-Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(int, String) callbak) {
+Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(int, String) callbak,String comentario,String nome) {
   return GestureDetector(
       onTap: () {
         callbak(2, "$textTitle");
@@ -307,22 +386,23 @@ Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(
                       children: [
 
                         Container(
-                          width:250,
+                          width:240,
                           alignment: Alignment.centerLeft,
                           height:40,
-                          child: Text("Alexandre Marques",style: TextStyle(fontWeight:FontWeight.bold),)
+                          child: Text("$nome",style: TextStyle(fontWeight:FontWeight.bold),)
                         ),
                         Container(
                           width:250,
                           alignment: Alignment.topLeft,
-                          height:60,
-                          child: Text("O jornal e bla bla bla")
+                          height:50,
+                          child: Text("$comentario")
                         ),
                         Container(
                           width:250,
+                          padding: EdgeInsets.only(top:5),
                           alignment: Alignment.centerLeft,
                           height:20,
-                          child: Text("9:00")
+                          child: Text("Há 10 horas ")
                         ),
 
                       ],
@@ -339,7 +419,7 @@ Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.all(Radius.circular(5)),
                       image: DecorationImage(
-                          image: NetworkImage(urlink), fit: BoxFit.fill),
+                          image: NetworkImage(urlink), fit: BoxFit.cover,alignment: Alignment.centerRight),
                     ),
                   ),
                 ))
@@ -347,3 +427,5 @@ Widget buttonBox(String urlink, String textTitle, BuildContext context,Function(
 }
 
 }
+
+
